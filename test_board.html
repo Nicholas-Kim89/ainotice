@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIVox 테스트 게시판</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f1f5f9;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .board-container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            padding: 30px;
+            margin-top: 20px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 25px;
+            color: var(--primary);
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 15px;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            height: 300px;
+            font-family: 'Courier New', Courier, monospace;
+            background: #f8fafc;
+            resize: vertical;
+        }
+
+        .file-upload-section {
+            background: #f8fafc;
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .file-list {
+            margin-top: 10px;
+            text-align: left;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        .btn-post {
+            width: 100%;
+            padding: 15px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-post:hover {
+            background: var(--primary-hover);
+        }
+
+        /* 게시물 보기 영역 */
+        #post-preview {
+            display: none;
+            margin-top: 40px;
+            border-top: 2px solid var(--border);
+            padding-top: 30px;
+            width: 100%;
+        }
+
+        .preview-header {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .attachment-badge {
+            display: inline-block;
+            background: #e2e8f0;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-right: 8px;
+            color: #475569;
+        }
+
+        .post-content-render {
+            background: #fff;
+            padding: 20px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+
+        .alert {
+            padding: 12px;
+            background: #dcfce7;
+            color: #166534;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="board-container">
+        <h1>AIVox 공지 테스트 게시판</h1>
+        
+        <div id="success-alert" class="alert">게시물이 성공적으로 등록되었습니다! (테스트 모드)</div>
+
+        <div class="form-group">
+            <label>제목</label>
+            <input type="text" id="post-title" placeholder="공지사항 제목을 입력하세요" value="[안내] 지능형 회의 지원 서비스 'AIVox' 오픈 안내">
+        </div>
+
+        <div class="file-upload-section">
+            <label style="cursor: pointer; color: var(--primary);">
+                <strong>📁 파일 첨부하기 (이미지/HTML 등)</strong>
+                <input type="file" id="file-input" multiple style="display: none;">
+            </label>
+            <div id="file-display" class="file-list">
+                <p>첨부된 파일이 없습니다.</p>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>내용 (HTML 모드)</label>
+            <textarea id="post-html-content" placeholder="HTML 코드를 입력하세요..."></textarea>
+        </div>
+
+        <button class="btn-post" onclick="renderPost()">게시물 등록 (미리보기)</button>
+    </div>
+
+    <!-- 실제 게시판처럼 렌더링되는 영역 -->
+    <div id="post-preview" class="board-container">
+        <div class="preview-header">
+            <h2 id="view-title" style="margin: 0 0 10px 0;"></h2>
+            <div id="view-attachments"></div>
+        </div>
+        <div id="view-content" class="post-content-render">
+            <!-- HTML 내용이 여기에 주입됨 -->
+        </div>
+        <div style="margin-top: 30px; text-align: center;">
+            <button class="btn-post" style="background: #64748b; width: auto;" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">상단으로 이동</button>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const fileDisplay = document.getElementById('file-display');
+        const htmlContentArea = document.getElementById('post-html-content');
+        
+        let attachedFiles = [];
+
+        // 초기 기본 템플릿 로드 (사용자에게 제공했던 코드)
+        const defaultTemplate = `<div style="background-color: #f3f0e9; padding: 60px 0; font-family: 'Noto Sans KR', sans-serif; display: flex; flex-direction: column; align-items: center;">
+    <div style="width: 800px; margin: 0 auto;">
+        
+        <!-- 1. 공지 이미지 (카드 스타일 - 전체 폭) -->
+        <div style="margin-bottom: 30px; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.06);">
+            <img src="notice.png" alt="AIVox 서비스 오픈 안내" style="width: 100%; height: auto; display: block;">
+        </div>
+
+        <!-- 2. 매뉴얼 다운로드 영역 (한 단계 작은 폭으로 조정) -->
+        <div style="width: 680px; margin: 0 auto; text-align: center; padding: 45px 30px; background-color: #fdfaf5; border-radius: 24px; border: 1px solid #f2eee3; box-shadow: 0 10px 30px rgba(0,0,0,0.06);">
+            <h3 style="margin-top: 0; color: #1e293b; font-size: 24px; font-weight: 800; margin-bottom: 30px;">상세 이용 가이드가 필요하신가요?</h3>
+            
+            <a href="manual_extracted.html" download="AIVox_manual.html" 
+               style="display: inline-block; background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%); color: #ffffff; padding: 18px 45px; text-decoration: none; border-radius: 15px; font-weight: 700; font-size: 18px; box-shadow: 0 10px 20px rgba(79, 70, 229, 0.2);">
+                📘 사용자 매뉴얼 다운로드 (HTML)
+            </a>
+        </div>
+
+    </div>
+</div>`;
+
+        htmlContentArea.value = defaultTemplate;
+
+        fileInput.addEventListener('change', function(e) {
+            fileDisplay.innerHTML = '';
+            attachedFiles = Array.from(e.target.files);
+            
+            if(attachedFiles.length === 0) {
+                fileDisplay.innerHTML = '<p>첨부된 파일이 없습니다.</p>';
+                return;
+            }
+
+            attachedFiles.forEach(file => {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.innerHTML = `<span>📄 ${file.name}</span> <span>(${(file.size/1024).toFixed(1)} KB)</span>`;
+                fileDisplay.appendChild(item);
+            });
+        });
+
+        function renderPost() {
+            const title = document.getElementById('post-title').value;
+            const content = document.getElementById('post-html-content').value;
+            const previewSection = document.getElementById('post-preview');
+            const alert = document.getElementById('success-alert');
+
+            document.getElementById('view-title').innerText = title;
+            
+            // 첨부파일 배지 생성
+            const attachmentArea = document.getElementById('view-attachments');
+            attachmentArea.innerHTML = '';
+            attachedFiles.forEach(file => {
+                const badge = document.createElement('span');
+                badge.className = 'attachment-badge';
+                badge.innerText = `📎 ${file.name}`;
+                attachmentArea.appendChild(badge);
+            });
+
+            // HTML 렌더링
+            document.getElementById('view-content').innerHTML = content;
+
+            // 표시
+            previewSection.style.display = 'block';
+            alert.style.display = 'block';
+            
+            window.scrollTo({
+                top: previewSection.offsetTop - 20,
+                behavior: 'smooth'
+            });
+
+            setTimeout(() => { alert.style.display = 'none'; }, 3000);
+        }
+    </script>
+</body>
+</html>
